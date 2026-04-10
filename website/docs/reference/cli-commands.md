@@ -188,7 +188,7 @@ Runs the WhatsApp pairing/setup flow, including mode selection and QR-code pairi
 
 ## `hermes auth`
 
-Manage credential pools for same-provider key rotation. See [Credential Pools](/docs/user-guide/features/credential-pools) for full documentation.
+Manage credential pools for same-provider key rotation. See [Credential Pools](/user-guide/features/credential-pools) for full documentation.
 
 ```bash
 hermes auth                                              # Interactive wizard
@@ -578,7 +578,7 @@ Manage MCP (Model Context Protocol) server configurations and run Hermes as an M
 | `test <name>` | Test connection to an MCP server. |
 | `configure <name>` (alias: `config`) | Toggle tool selection for a server. |
 
-See [MCP Config Reference](./mcp-config-reference.md), [Use MCP with Hermes](../guides/use-mcp-with-hermes.md), and [MCP Server Mode](../user-guide/features/mcp.md#running-hermes-as-an-mcp-server).
+See [MCP Config Reference](/reference/mcp-config-reference), [Use MCP with Hermes](/guides/use-mcp-with-hermes), and [MCP Server Mode](/user-guide/features/mcp#running-hermes-as-an-mcp-server).
 
 ## `hermes plugins`
 
@@ -751,7 +751,7 @@ hermes completion zsh >> ~/.zshrc
 ## See also
 
 - [Slash Commands Reference](./slash-commands.md)
-- [CLI Interface](../user-guide/cli.md)
+- [CLI Interface](/user-guide/cli)
 - [Sessions](../user-guide/sessions.md)
-- [Skills System](../user-guide/features/skills.md)
+- [Skills System](/user-guide/features/skills)
 - [Skins & Themes](../user-guide/features/skins.md)

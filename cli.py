@@ -259,6 +259,7 @@ def load_cli_config() -> Dict[str, Any]:
 
         "display": {
             "compact": False,
+            "language": "en",
             "resume_display": "full",
             "show_reasoning": False,
             "streaming": True,
@@ -509,6 +510,10 @@ def load_cli_config() -> Dict[str, Any]:
 
 # Load configuration at module startup
 CLI_CONFIG = load_cli_config()
+
+from hermes_cli.i18n import init_locale_from_config as _init_locale_from_config
+
+_init_locale_from_config(CLI_CONFIG)
 
 # Initialize centralized logging early — agent.log + errors.log in ~/.hermes/logs/.
 # This ensures CLI sessions produce a log trail even before AIAgent is instantiated.
@@ -1500,6 +1505,14 @@ class HermesCLI:
         # Initialize Rich console
         self.console = Console()
         self.config = CLI_CONFIG
+        try:
+            from hermes_cli.commands import rebuild_lookups
+            from hermes_cli.i18n import init_locale_from_config
+
+            init_locale_from_config(self.config)
+            rebuild_lookups()
+        except Exception:
+            pass
         self.compact = compact if compact is not None else CLI_CONFIG["display"].get("compact", False)
         # tool_progress: "off", "new", "all", "verbose" (from config.yaml display section)
         # YAML 1.1 parses bare `off` as boolean False — normalise to string.
@@ -3319,13 +3332,14 @@ class HermesCLI:
     def show_help(self):
         """Display help information with categorized commands."""
         from hermes_cli.commands import COMMANDS_BY_CATEGORY
+        from hermes_cli.i18n import tr
 
         try:
             from hermes_cli.skin_engine import get_active_help_header
-            header = get_active_help_header("(^_^)? Available Commands")
+            header = get_active_help_header(tr("ui.available_commands_header", "(^_^)? Available Commands"))
         except Exception:
-            header = "(^_^)? Available Commands"
-        header = (header or "").strip() or "(^_^)? Available Commands"
+            header = tr("ui.available_commands_header", "(^_^)? Available Commands")
+        header = (header or "").strip() or tr("ui.available_commands_header", "(^_^)? Available Commands")
         inner_width = 55
         if len(header) > inner_width:
             header = header[:inner_width]
@@ -3339,18 +3353,20 @@ class HermesCLI:
                 ChatConsole().print(f"    [bold {_accent_hex()}]{cmd:<15}[/] [dim]-[/] {_escape(desc)}")
 
         if _skill_commands:
-            _cprint(f"\n  ⚡ {_BOLD}Skill Commands{_RST} ({len(_skill_commands)} installed):")
+            _cprint(f"\n  ⚡ {_BOLD}{tr('ui.skill_commands', 'Skill Commands')}{_RST} ({len(_skill_commands)} {tr('ui.installed', 'installed')}):")
             for cmd, info in sorted(_skill_commands.items()):
                 ChatConsole().print(
                     f"    [bold {_accent_hex()}]{cmd:<22}[/] [dim]-[/] {_escape(info['description'])}"
                 )
 
-        _cprint(f"\n  {_DIM}Tip: Just type your message to chat with Hermes!{_RST}")
-        _cprint(f"  {_DIM}Multi-line: Alt+Enter for a new line{_RST}")
+        _cprint(f"\n  {_DIM}{tr('ui.tip_chat', 'Tip: Just type your message to chat with Hermes!')}{_RST}")
+        _cprint(f"  {_DIM}{tr('ui.tip_multiline', 'Multi-line: Alt+Enter for a new line')}{_RST}")
         if _is_termux_environment():
-            _cprint(f"  {_DIM}Attach image: /image {_termux_example_image_path()} or start your prompt with a local image path{_RST}\n")
+            _cprint(
+                f"  {_DIM}{tr('ui.tip_attach_image', 'Attach image: /image {path} or start your prompt with a local image path', path=_termux_example_image_path())}{_RST}\n"
+            )
         else:
-            _cprint(f"  {_DIM}Paste image: Alt+V (or /paste){_RST}\n")
+            _cprint(f"  {_DIM}{tr('ui.tip_paste_image', 'Paste image: Alt+V (or /paste)')}{_RST}\n")
     
     def show_tools(self):
         """Display available tools with kawaii ASCII art."""
@@ -4846,6 +4862,8 @@ class HermesCLI:
                     _cprint(f"  Queued: {payload[:80]}{'...' if len(payload) > 80 else ''}")
         elif canonical == "skin":
             self._handle_skin_command(cmd_original)
+        elif canonical == "language":
+            self._handle_language_command(cmd_original)
         elif canonical == "voice":
             self._handle_voice_command(cmd_original)
         else:
@@ -4938,18 +4956,21 @@ class HermesCLI:
                     full_name = matches[0]
                     if full_name == typed_base:
                         # Already an exact token — no expansion possible; fall through
-                        _cprint(f"\033[1;31mUnknown command: {cmd_lower}{_RST}")
-                        _cprint(f"{_DIM}{_GOLD}Type /help for available commands{_RST}")
+                        from hermes_cli.i18n import tr
+                        _cprint(f"\033[1;31m{tr('ui.unknown_command', 'Unknown command: {command}', command=cmd_lower)}{_RST}")
+                        _cprint(f"{_DIM}{_GOLD}{tr('ui.type_help', 'Type /help for available commands')}{_RST}")
                     else:
                         remainder = cmd_original.strip()[len(typed_base):]
                         full_cmd = full_name + remainder
                         return self.process_command(full_cmd)
                 elif len(matches) > 1:
-                    _cprint(f"{_GOLD}Ambiguous command: {cmd_lower}{_RST}")
-                    _cprint(f"{_DIM}Did you mean: {', '.join(sorted(matches))}?{_RST}")
+                    from hermes_cli.i18n import tr
+                    _cprint(f"{_GOLD}{tr('ui.ambiguous_command', 'Ambiguous command: {command}', command=cmd_lower)}{_RST}")
+                    _cprint(f"{_DIM}{tr('ui.did_you_mean', 'Did you mean: {choices}?', choices=', '.join(sorted(matches)))}{_RST}")
                 else:
-                    _cprint(f"\033[1;31mUnknown command: {cmd_lower}{_RST}")
-                    _cprint(f"{_DIM}{_GOLD}Type /help for available commands{_RST}")
+                    from hermes_cli.i18n import tr
+                    _cprint(f"\033[1;31m{tr('ui.unknown_command', 'Unknown command: {command}', command=cmd_lower)}{_RST}")
+                    _cprint(f"{_DIM}{_GOLD}{tr('ui.type_help', 'Type /help for available commands')}{_RST}")
         
         return True
     
@@ -5490,6 +5511,33 @@ class HermesCLI:
         print("  Note: banner colors will update on next session start.")
         if self._apply_tui_skin_style():
             print("  Prompt + TUI colors updated.")
+
+    def _handle_language_command(self, cmd: str):
+        """Handle /language [en|zh|status] — show or change the display language."""
+        from hermes_cli.commands import rebuild_lookups
+        from hermes_cli.i18n import language_label, set_active_locale, tr
+
+        parts = cmd.strip().split(maxsplit=1)
+        current = set_active_locale(self.config.get("display", {}).get("language", "en"))
+        if len(parts) < 2 or not parts[1].strip() or parts[1].strip().lower() == "status":
+            print(f"  {tr('ui.language_current', 'Current language: {language}', language=language_label(current))}")
+            print(f"  {tr('ui.language_available', 'Available languages: {languages}', languages='English (en), 中文 (zh)')}")
+            print(f"  {tr('ui.language_usage', 'Usage: /language [en|zh|status]')}")
+            return
+
+        requested = parts[1].strip().lower()
+        if requested not in {"en", "zh"}:
+            print(f"  {tr('ui.language_unknown', 'Unknown language: {language}', language=requested)}")
+            print(f"  {tr('ui.language_usage', 'Usage: /language [en|zh|status]')}")
+            return
+
+        self.config.setdefault("display", {})["language"] = requested
+        set_active_locale(requested)
+        rebuild_lookups()
+        if save_config_value("display.language", requested):
+            print(f"  {tr('ui.language_saved', 'Display language set to: {language} (saved)', language=language_label(requested))}")
+        else:
+            print(f"  {tr('ui.language_set', 'Display language set to: {language}', language=language_label(requested))}")
 
     def _toggle_verbose(self):
         """Cycle tool progress mode: off → new → all → verbose → off."""
@@ -7388,12 +7436,16 @@ class HermesCLI:
                 self._display_resumed_history()
 
         try:
+            from hermes_cli.i18n import get_active_locale, tr
             from hermes_cli.skin_engine import get_active_skin
             _welcome_skin = get_active_skin()
             _welcome_text = _welcome_skin.get_branding("welcome", "Welcome to Hermes Agent! Type your message or /help for commands.")
             _welcome_color = _welcome_skin.get_color("banner_text", "#FFF8DC")
+            if get_active_locale() == "zh" and _welcome_text.endswith("Type your message or /help for commands."):
+                _welcome_text = tr("ui.welcome_default", "Welcome to Hermes Agent! Type your message or /help for commands.")
         except Exception:
-            _welcome_text = "Welcome to Hermes Agent! Type your message or /help for commands."
+            from hermes_cli.i18n import tr
+            _welcome_text = tr("ui.welcome_default", "Welcome to Hermes Agent! Type your message or /help for commands.")
             _welcome_color = "#FFF8DC"
         self.console.print(f"[{_welcome_color}]{_welcome_text}[/]")
         if self.preloaded_skills and not self._startup_skills_line_shown:

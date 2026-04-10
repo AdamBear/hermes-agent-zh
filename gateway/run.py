@@ -475,6 +475,15 @@ class GatewayRunner:
     def __init__(self, config: Optional[GatewayConfig] = None):
         self.config = config or load_gateway_config()
         self.adapters: Dict[Platform, BasePlatformAdapter] = {}
+        try:
+            from hermes_cli.commands import rebuild_lookups
+            from hermes_cli.config import read_raw_config
+            from hermes_cli.i18n import init_locale_from_config
+
+            init_locale_from_config(read_raw_config())
+            rebuild_lookups()
+        except Exception:
+            pass
 
         # Load ephemeral config from config.yaml / env vars.
         # Both are injected at API-call time only and never persisted.
@@ -2281,11 +2290,13 @@ class GatewayRunner:
                             command,
                             source.platform.value if source.platform else "?",
                         )
+                        from hermes_cli.i18n import tr
                         return (
-                            f"Unknown command `/{command}`. "
-                            f"Type /commands to see what's available, "
-                            f"or resend without the leading slash to send "
-                            f"as a regular message."
+                            tr(
+                                "ui.gateway_unknown_command",
+                                "Unknown command `/{command}`. Type /commands to see what's available, or resend without the leading slash to send as a regular message.",
+                                command=command,
+                            )
                         )
             except Exception as e:
                 logger.debug("Skill command check failed (non-fatal): %s", e)
@@ -3446,21 +3457,25 @@ class GatewayRunner:
     async def _handle_help_command(self, event: MessageEvent) -> str:
         """Handle /help command - list available commands."""
         from hermes_cli.commands import gateway_help_lines
+        from hermes_cli.i18n import tr
         lines = [
-            "📖 **Hermes Commands**\n",
+            f"📖 **{tr('ui.gateway_commands', 'Hermes Commands')}**\n",
             *gateway_help_lines(),
         ]
         try:
             from agent.skill_commands import get_skill_commands
             skill_cmds = get_skill_commands()
             if skill_cmds:
-                lines.append(f"\n⚡ **Skill Commands** ({len(skill_cmds)} active):")
+                lines.append(
+                    f"\n⚡ **{tr('ui.gateway_skill_commands', 'Skill Commands')}** "
+                    f"({len(skill_cmds)} {tr('ui.active', 'active')}):"
+                )
                 # Show first 10, then point to /commands for the rest
                 sorted_cmds = sorted(skill_cmds)
                 for cmd in sorted_cmds[:10]:
                     lines.append(f"`{cmd}` — {skill_cmds[cmd]['description']}")
                 if len(sorted_cmds) > 10:
-                    lines.append(f"\n... and {len(sorted_cmds) - 10} more. Use `/commands` for the full paginated list.")
+                    lines.append(f"\n{tr('ui.gateway_more', '... and {count} more. Use `/commands` for the full paginated list.', count=len(sorted_cmds) - 10)}")
         except Exception:
             pass
         return "\n".join(lines)
@@ -3468,13 +3483,14 @@ class GatewayRunner:
     async def _handle_commands_command(self, event: MessageEvent) -> str:
         """Handle /commands [page] - paginated list of all commands and skills."""
         from hermes_cli.commands import gateway_help_lines
+        from hermes_cli.i18n import tr
 
         raw_args = event.get_command_args().strip()
         if raw_args:
             try:
                 requested_page = int(raw_args)
             except ValueError:
-                return "Usage: `/commands [page]`"
+                return tr("ui.gateway_usage_commands", "Usage: `/commands [page]`")
         else:
             requested_page = 1
 
@@ -3485,15 +3501,15 @@ class GatewayRunner:
             skill_cmds = get_skill_commands()
             if skill_cmds:
                 entries.append("")
-                entries.append("⚡ **Skill Commands**:")
+                entries.append(f"⚡ **{tr('ui.gateway_skill_commands', 'Skill Commands')}**:")
                 for cmd in sorted(skill_cmds):
-                    desc = skill_cmds[cmd].get("description", "").strip() or "Skill command"
+                    desc = skill_cmds[cmd].get("description", "").strip() or tr("ui.skill_commands", "Skill command")
                     entries.append(f"`{cmd}` — {desc}")
         except Exception:
             pass
 
         if not entries:
-            return "No commands available."
+            return tr("ui.gateway_no_commands", "No commands available.")
 
         from gateway.config import Platform
         page_size = 15 if event.source.platform == Platform.TELEGRAM else 20
@@ -3503,21 +3519,21 @@ class GatewayRunner:
         page_entries = entries[start:start + page_size]
 
         lines = [
-            f"📚 **Commands** ({len(entries)} total, page {page}/{total_pages})",
+            f"📚 **{tr('ui.gateway_commands_title', 'Commands')}** ({len(entries)} total, page {page}/{total_pages})",
             "",
             *page_entries,
         ]
         if total_pages > 1:
             nav_parts = []
             if page > 1:
-                nav_parts.append(f"`/commands {page - 1}` ← prev")
+                nav_parts.append(f"`/commands {page - 1}` ← {tr('ui.gateway_prev', 'prev')}")
             if page < total_pages:
-                nav_parts.append(f"next → `/commands {page + 1}`")
+                nav_parts.append(f"{tr('ui.gateway_next', 'next')} → `/commands {page + 1}`")
             lines.extend(["", " | ".join(nav_parts)])
         if page != requested_page:
             lines.append(f"_(Requested page {requested_page} was out of range, showing page {page}.)_")
         return "\n".join(lines)
-    
+
     async def _handle_model_command(self, event: MessageEvent) -> Optional[str]:
         """Handle /model command — switch model for this session.
 

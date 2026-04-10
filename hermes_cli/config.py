@@ -417,6 +417,7 @@ DEFAULT_CONFIG = {
     
     "display": {
         "compact": False,
+        "language": "en",
         "personality": "kawaii",
         "resume_display": "full",
         "busy_input_mode": "interrupt",
@@ -599,7 +600,7 @@ DEFAULT_CONFIG = {
     },
 
     # Config schema version - bump this when adding new required fields
-    "_config_version": 13,
+    "_config_version": 14,
 }
 
 # =============================================================================

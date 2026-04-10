@@ -328,7 +328,7 @@ fallback_model:
   model: anthropic/claude-sonnet-4
 ```
 
-See [Fallback Providers](/docs/user-guide/features/fallback-providers) for full details.
+See [Fallback Providers](/user-guide/features/fallback-providers) for full details.
 
 ## Provider Routing (config.yaml only)
 

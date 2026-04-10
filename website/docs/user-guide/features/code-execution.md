@@ -187,7 +187,7 @@ terminal:
     - ANOTHER_TOKEN
 ```
 
-See the [Security guide](/docs/user-guide/security#environment-variable-passthrough) for full details.
+See the [Security guide](/user-guide/security#environment-variable-passthrough) for full details.
 
 The script runs in a temporary directory that is cleaned up after execution. The child process runs in its own process group so it can be cleanly killed on timeout or interruption.
 
@@ -201,7 +201,7 @@ The script runs in a temporary directory that is cleaned up after execution. The
 | Running a build or test suite | ❌ | ✅ |
 | Looping over search results | ✅ | ❌ |
 | Interactive/background processes | ❌ | ✅ |
-| Needs API keys in environment | ⚠️ Only via [passthrough](/docs/user-guide/security#environment-variable-passthrough) | ✅ (most pass through) |
+| Needs API keys in environment | ⚠️ Only via [passthrough](/user-guide/security#environment-variable-passthrough) | ✅ (most pass through) |
 
 **Rule of thumb:** Use `execute_code` when you need to call Hermes tools programmatically with logic between calls. Use `terminal` for running shell commands, builds, and processes.
 

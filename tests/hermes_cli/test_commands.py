@@ -24,6 +24,7 @@ from hermes_cli.commands import (
     telegram_bot_commands,
     telegram_menu_commands,
 )
+from hermes_cli.i18n import set_active_locale
 
 
 def _completions(completer: SlashCommandCompleter, text: str):
@@ -146,6 +147,24 @@ class TestDerivedDicts:
         for cmd, desc in COMMANDS.items():
             assert isinstance(desc, str) and len(desc) > 0, f"{cmd} has empty description"
 
+    def test_language_command_is_registered(self):
+        assert resolve_command("language").name == "language"
+        assert "/language" in COMMANDS
+
+    def test_rebuild_lookups_localizes_help_text(self):
+        from hermes_cli.commands import rebuild_lookups
+
+        previous = set_active_locale("en")
+        rebuild_lookups()
+        try:
+            set_active_locale("zh")
+            rebuild_lookups()
+            assert "显示可用命令" in COMMANDS["/help"]
+            assert "配置" in COMMANDS_BY_CATEGORY
+        finally:
+            set_active_locale(previous)
+            rebuild_lookups()
+
 
 # ---------------------------------------------------------------------------
 # Gateway helpers
@@ -198,6 +217,20 @@ class TestGatewayHelpLines:
         bg_line = [l for l in lines if "/background" in l]
         assert len(bg_line) == 1
         assert "/bg" in bg_line[0]
+
+    def test_gateway_help_lines_localize_when_locale_is_zh(self):
+        from hermes_cli.commands import rebuild_lookups
+
+        previous = set_active_locale("en")
+        rebuild_lookups()
+        try:
+            set_active_locale("zh")
+            rebuild_lookups()
+            joined = "\n".join(gateway_help_lines())
+            assert "显示可用命令" in joined
+        finally:
+            set_active_locale(previous)
+            rebuild_lookups()
 
 
 class TestTelegramBotCommands:

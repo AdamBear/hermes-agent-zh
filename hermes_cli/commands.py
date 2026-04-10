@@ -19,6 +19,8 @@ from typing import Any
 from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
 from prompt_toolkit.completion import Completer, Completion
 
+from hermes_cli.i18n import category_label, command_description, tr
+
 
 # ---------------------------------------------------------------------------
 # CommandDef dataclass
@@ -102,6 +104,8 @@ COMMAND_REGISTRY: list[CommandDef] = [
                subcommands=("none", "minimal", "low", "medium", "high", "xhigh", "show", "hide", "on", "off")),
     CommandDef("skin", "Show or change the display skin/theme", "Configuration",
                cli_only=True, args_hint="[name]"),
+    CommandDef("language", "Show or change the display language", "Configuration",
+               cli_only=True, args_hint="[en|zh|status]"),
     CommandDef("voice", "Toggle voice mode", "Configuration",
                args_hint="[on|off|tts|status]", subcommands=("on", "off", "tts", "status")),
 
@@ -193,12 +197,15 @@ def rebuild_lookups() -> None:
         if not cmd.gateway_only:
             COMMANDS[f"/{cmd.name}"] = _build_description(cmd)
             for alias in cmd.aliases:
-                COMMANDS[f"/{alias}"] = f"{cmd.description} (alias for /{cmd.name})"
+                COMMANDS[f"/{alias}"] = (
+                    f"{command_description(cmd.name, cmd.description)} "
+                    f"({tr('meta.alias_for', 'alias for')} /{cmd.name})"
+                )
 
     COMMANDS_BY_CATEGORY.clear()
     for cmd in COMMAND_REGISTRY:
         if not cmd.gateway_only:
-            cat = COMMANDS_BY_CATEGORY.setdefault(cmd.category, {})
+            cat = COMMANDS_BY_CATEGORY.setdefault(category_label(cmd.category), {})
             cat[f"/{cmd.name}"] = COMMANDS[f"/{cmd.name}"]
             for alias in cmd.aliases:
                 cat[f"/{alias}"] = COMMANDS[f"/{alias}"]
@@ -225,9 +232,10 @@ def rebuild_lookups() -> None:
 
 def _build_description(cmd: CommandDef) -> str:
     """Build a CLI-facing description string including usage hint."""
+    description = command_description(cmd.name, cmd.description)
     if cmd.args_hint:
-        return f"{cmd.description} (usage: /{cmd.name} {cmd.args_hint})"
-    return cmd.description
+        return f"{description} ({tr('meta.usage', 'usage')}: /{cmd.name} {cmd.args_hint})"
+    return description
 
 
 # Backwards-compatible flat dict: "/command" -> description
@@ -236,13 +244,16 @@ for _cmd in COMMAND_REGISTRY:
     if not _cmd.gateway_only:
         COMMANDS[f"/{_cmd.name}"] = _build_description(_cmd)
         for _alias in _cmd.aliases:
-            COMMANDS[f"/{_alias}"] = f"{_cmd.description} (alias for /{_cmd.name})"
+            COMMANDS[f"/{_alias}"] = (
+                f"{command_description(_cmd.name, _cmd.description)} "
+                f"({tr('meta.alias_for', 'alias for')} /{_cmd.name})"
+            )
 
 # Backwards-compatible categorized dict
 COMMANDS_BY_CATEGORY: dict[str, dict[str, str]] = {}
 for _cmd in COMMAND_REGISTRY:
     if not _cmd.gateway_only:
-        _cat = COMMANDS_BY_CATEGORY.setdefault(_cmd.category, {})
+        _cat = COMMANDS_BY_CATEGORY.setdefault(category_label(_cmd.category), {})
         _cat[f"/{_cmd.name}"] = COMMANDS[f"/{_cmd.name}"]
         for _alias in _cmd.aliases:
             _cat[f"/{_alias}"] = COMMANDS[f"/{_alias}"]
@@ -342,8 +353,10 @@ def gateway_help_lines() -> list[str]:
             if a.replace("-", "_") == cmd.name.replace("-", "_") and a != cmd.name:
                 continue
             alias_parts.append(f"`/{a}`")
-        alias_note = f" (alias: {', '.join(alias_parts)})" if alias_parts else ""
-        lines.append(f"`/{cmd.name}{args}` -- {cmd.description}{alias_note}")
+        alias_note = f" ({tr('meta.alias', 'alias')}: {', '.join(alias_parts)})" if alias_parts else ""
+        lines.append(
+            f"`/{cmd.name}{args}` -- {command_description(cmd.name, cmd.description)}{alias_note}"
+        )
     return lines
 
 
@@ -361,7 +374,7 @@ def telegram_bot_commands() -> list[tuple[str, str]]:
             continue
         tg_name = _sanitize_telegram_name(cmd.name)
         if tg_name:
-            result.append((tg_name, cmd.description))
+            result.append((tg_name, command_description(cmd.name, cmd.description)))
     return result
 
 

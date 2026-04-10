@@ -8,7 +8,7 @@ description: "Find, install, use, and create skills — on-demand knowledge that
 
 Skills are on-demand knowledge documents that teach Hermes how to handle specific tasks — from generating ASCII art to managing GitHub PRs. This guide walks you through using them day to day.
 
-For the full technical reference, see [Skills System](/docs/user-guide/features/skills).
+For the full technical reference, see [Skills System](/user-guide/features/skills).
 
 ---
 
@@ -265,4 +265,4 @@ Both are persistent across sessions, but they serve different purposes:
 
 ---
 
-*For the complete skills reference — frontmatter fields, conditional activation, external directories, and more — see [Skills System](/docs/user-guide/features/skills).*
+*For the complete skills reference — frontmatter fields, conditional activation, external directories, and more — see [Skills System](/user-guide/features/skills).*
